@@ -2,19 +2,25 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>灵感日记生成器</title>
-    <!-- 移动端应用图标模拟 -->
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/4345/4345517.png">
+    
+    <!-- 苹果 iOS 原生 App 体验优化 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="灵感日记">
+    <!-- 图标引用：现在指向你仓库里的 icon.png -->
+    <link rel="apple-touch-icon" href="icon.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 引入思源宋体 (Noto Serif SC) 和 思源黑体 (Noto Sans SC) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700;900&family=Noto+Sans+SC:wght@700;900&family=Noto+Serif+SC:wght@700;900&display=swap');
         
         body {
             background-color: #f8fafc;
             font-family: 'Inter', 'Noto Sans SC', sans-serif;
             -webkit-tap-highlight-color: transparent;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         canvas {
@@ -25,7 +31,6 @@
             background-color: white;
         }
 
-        /* 优化滑块触摸体验 */
         input[type=range] {
             accent-color: #0A2463;
             height: 36px;
@@ -41,7 +46,6 @@
             position: relative;
         }
 
-        /* 为白色色块增加内阴影或边框以防在白底上看不见 */
         .color-dot[data-color="#FFFFFF"] {
             border: 2px solid #e2e8f0;
         }
@@ -68,13 +72,13 @@
         ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="min-h-screen">
     <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 p-4">
         <!-- 控制面板 -->
         <div class="w-full lg:w-96 bg-white p-6 rounded-3xl shadow-sm space-y-6 order-2 lg:order-1 border border-slate-100">
             <div class="flex items-center justify-between">
                 <h1 class="text-xl font-black text-slate-800 tracking-tight italic">INSIGHT STUDIO</h1>
-                <span class="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full">v2.1 自由配色版</span>
+                <span class="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full">v2.1 定版</span>
             </div>
             
             <div class="space-y-4">
@@ -106,40 +110,36 @@
                 </div>
             </div>
 
-            <!-- 核心改进：全量颜色选择器 -->
             <div class="space-y-6 pt-4 border-t border-slate-50">
                 <div class="space-y-4">
-                    <!-- 背景颜色 -->
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">背景背景色</label>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">背景颜色</label>
                         <div class="flex gap-3" id="bgColorPicker">
-                            <div class="color-dot bg-pure-white active" data-color="#FFFFFF" title="纯白"></div>
-                            <div class="color-dot bg-deep-blue" data-color="#0A2463" title="深蓝"></div>
-                            <div class="color-dot bg-muted-red" data-color="#A64452" title="砖红"></div>
+                            <div class="color-dot bg-pure-white active" data-color="#FFFFFF"></div>
+                            <div class="color-dot bg-deep-blue" data-color="#0A2463"></div>
+                            <div class="color-dot bg-muted-red" data-color="#A64452"></div>
                         </div>
                     </div>
-                    <!-- 主文字颜色 -->
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">主内容颜色</label>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">主文字颜色</label>
                         <div class="flex gap-3" id="textColorPicker">
-                            <div class="color-dot bg-pure-white" data-color="#FFFFFF" title="纯白"></div>
-                            <div class="color-dot bg-deep-blue active" data-color="#0A2463" title="深蓝"></div>
-                            <div class="color-dot bg-muted-red" data-color="#A64452" title="砖红"></div>
+                            <div class="color-dot bg-pure-white" data-color="#FFFFFF"></div>
+                            <div class="color-dot bg-deep-blue active" data-color="#0A2463"></div>
+                            <div class="color-dot bg-muted-red" data-color="#A64452"></div>
                         </div>
                     </div>
-                    <!-- 装饰颜色 -->
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">线条与页脚颜色</label>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">装饰颜色</label>
                         <div class="flex gap-3" id="accentColorPicker">
-                            <div class="color-dot bg-pure-white" data-color="#FFFFFF" title="纯白"></div>
-                            <div class="color-dot bg-deep-blue" data-color="#0A2463" title="深蓝"></div>
-                            <div class="color-dot bg-muted-red active" data-color="#A64452" title="砖红"></div>
+                            <div class="color-dot bg-pure-white" data-color="#FFFFFF"></div>
+                            <div class="color-dot bg-deep-blue" data-color="#0A2463"></div>
+                            <div class="color-dot bg-muted-red active" data-color="#A64452"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <button id="downloadBtn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-900 transition-all transform active:scale-[0.98] shadow-xl shadow-blue-900/10">
+            <button id="downloadBtn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-900 transition-all transform active:scale-[0.98] shadow-xl">
                 保存此海报
             </button>
         </div>
@@ -149,7 +149,7 @@
             <div class="w-full max-w-[600px]">
                 <canvas id="posterCanvas" width="1200" height="1200"></canvas>
             </div>
-            <p class="mt-6 text-slate-400 text-[10px] font-bold tracking-widest uppercase">全色彩自由组合已就绪</p>
+            <p class="mt-6 text-slate-400 text-[10px] font-bold tracking-widest uppercase text-center italic">“记录每一个平凡而伟大的灵感瞬间”</p>
         </div>
     </div>
 
@@ -199,11 +199,12 @@
             document.getElementById('downloadBtn').addEventListener('click', function() {
                 this.innerText = "生成中...";
                 setTimeout(() => {
+                    const canvasData = canvas.toDataURL('image/png', 1.0);
                     const link = document.createElement('a');
-                    link.download = `Insight_Custom_${Date.now()}.png`;
-                    link.href = canvas.toDataURL('image/png', 1.0);
+                    link.download = `Insight_${Date.now()}.png`;
+                    link.href = canvasData;
                     link.click();
-                    this.innerText = "保存海报到相册";
+                    this.innerText = "保存此海报";
                 }, 100);
             });
         }
@@ -230,7 +231,6 @@
             ctx.fillStyle = state.bgColor;
             ctx.fillRect(0, 0, size, size);
 
-            // 2. 页眉 (双色黑体)
             ctx.textBaseline = 'middle';
             ctx.font = `bold 36px ${sansFontStack}`;
             const parts = state.header.split('|');
@@ -243,16 +243,13 @@
             const totalTextWidth = leftWidth + rightWidth;
             const startX = (size / 2) - (totalTextWidth / 2);
             
-            // 左半部主色
             ctx.fillStyle = state.textColor;
             ctx.fillText(leftPart, startX, vPadding);
-            // 右半部装饰色
             if (rightPart) {
                 ctx.fillStyle = state.accentColor;
                 ctx.fillText(rightPart, startX + leftWidth, vPadding);
             }
             
-            // 线条跟随主色
             ctx.strokeStyle = state.textColor;
             ctx.lineWidth = 4;
             const lineGap = 30;
@@ -265,7 +262,6 @@
             ctx.lineTo(size - edgePadding, vPadding);
             ctx.stroke();
 
-            // 3. 主内容 (宋体)
             ctx.fillStyle = state.textColor;
             const fs = state.fontSize;
             const lh = fs * 1.5;
@@ -294,7 +290,6 @@
                 curY += lh;
             });
 
-            // 4. 页脚 (黑体 - 装饰色)
             ctx.textAlign = 'right';
             ctx.textBaseline = 'bottom';
             ctx.fillStyle = state.accentColor;
