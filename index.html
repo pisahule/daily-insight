@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>灵感日记生成器</title>
+    <!-- 移动端应用图标模拟 -->
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/4345/4345517.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 引入思源宋体 (Noto Serif SC) 和 思源黑体 (Noto Sans SC) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700;900&family=Noto+Sans+SC:wght@700;900&family=Noto+Serif+SC:wght@700;900&display=swap');
+        
+        body {
+            background-color: #f8fafc;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            background-color: white;
+        }
+
+        /* 优化滑块触摸体验 */
+        input[type=range] {
+            accent-color: #0A2463;
+            height: 36px;
+        }
+
+        .color-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #f1f5f9;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        /* 为白色色块增加内阴影或边框以防在白底上看不见 */
+        .color-dot[data-color="#FFFFFF"] {
+            border: 2px solid #e2e8f0;
+        }
+
+        .color-dot.active {
+            border-color: #3b82f6 !important;
+            transform: scale(1.15);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .color-dot.active::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+
+        .bg-pure-white { background-color: #FFFFFF; }
+        .bg-deep-blue { background-color: #0A2463; }
+        .bg-muted-red { background-color: #A64452; }
+
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+    <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 p-4">
+        <!-- 控制面板 -->
+        <div class="w-full lg:w-96 bg-white p-6 rounded-3xl shadow-sm space-y-6 order-2 lg:order-1 border border-slate-100">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-black text-slate-800 tracking-tight italic">INSIGHT STUDIO</h1>
+                <span class="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full">v2.1 自由配色版</span>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">页眉 / Header</label>
+                    <input type="text" id="headerText" value="灵感日记 | INSPIRATION OF THE DAY" 
+                        class="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-sm font-medium text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">灵感 / Content (宋体)</label>
+                    <textarea id="mainText" rows="3" 
+                        class="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-base font-bold text-slate-800 leading-relaxed">专注在那些 即便缓慢，
+也能创造长久价值
+的事情。</textarea>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-2 px-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">内容字号</label>
+                        <span id="fontSizeVal" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">84px</span>
+                    </div>
+                    <input type="range" id="fontSizeRange" min="30" max="150" value="84" class="w-full cursor-pointer">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">页脚 / Signature</label>
+                    <input type="text" id="footerText" value="@樵夫老宋" 
+                        class="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-sm font-medium text-slate-700">
+                </div>
+            </div>
+
+            <!-- 核心改进：全量颜色选择器 -->
+            <div class="space-y-6 pt-4 border-t border-slate-50">
+                <div class="space-y-4">
+                    <!-- 背景颜色 -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">背景背景色</label>
+                        <div class="flex gap-3" id="bgColorPicker">
+                            <div class="color-dot bg-pure-white active" data-color="#FFFFFF" title="纯白"></div>
+                            <div class="color-dot bg-deep-blue" data-color="#0A2463" title="深蓝"></div>
+                            <div class="color-dot bg-muted-red" data-color="#A64452" title="砖红"></div>
+                        </div>
+                    </div>
+                    <!-- 主文字颜色 -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">主内容颜色</label>
+                        <div class="flex gap-3" id="textColorPicker">
+                            <div class="color-dot bg-pure-white" data-color="#FFFFFF" title="纯白"></div>
+                            <div class="color-dot bg-deep-blue active" data-color="#0A2463" title="深蓝"></div>
+                            <div class="color-dot bg-muted-red" data-color="#A64452" title="砖红"></div>
+                        </div>
+                    </div>
+                    <!-- 装饰颜色 -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase ml-1">线条与页脚颜色</label>
+                        <div class="flex gap-3" id="accentColorPicker">
+                            <div class="color-dot bg-pure-white" data-color="#FFFFFF" title="纯白"></div>
+                            <div class="color-dot bg-deep-blue" data-color="#0A2463" title="深蓝"></div>
+                            <div class="color-dot bg-muted-red active" data-color="#A64452" title="砖红"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="downloadBtn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-900 transition-all transform active:scale-[0.98] shadow-xl shadow-blue-900/10">
+                保存此海报
+            </button>
+        </div>
+
+        <!-- 预览区 -->
+        <div class="flex-1 flex flex-col items-center justify-start pt-2 order-1 lg:order-2">
+            <div class="w-full max-w-[600px]">
+                <canvas id="posterCanvas" width="1200" height="1200"></canvas>
+            </div>
+            <p class="mt-6 text-slate-400 text-[10px] font-bold tracking-widest uppercase">全色彩自由组合已就绪</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('posterCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const sansFontStack = '"Inter", "Noto Sans SC", "Microsoft YaHei", sans-serif';
+        const serifFontStack = '"Noto Serif SC", "SimSun", "STSong", serif';
+
+        const state = {
+            header: "灵感日记 | INSPIRATION OF THE DAY",
+            main: "专注在那些 即便缓慢，\n也能创造长久价值\n的事情。",
+            footer: "@樵夫老宋",
+            fontSize: 84,
+            bgColor: "#FFFFFF",
+            textColor: "#0A2463",
+            accentColor: "#A64452"
+        };
+
+        document.fonts.ready.then(render);
+
+        window.onload = () => {
+            render();
+            setupEventListeners();
+        };
+
+        function setupEventListeners() {
+            ['headerText', 'mainText', 'footerText'].forEach(id => {
+                document.getElementById(id).addEventListener('input', (e) => {
+                    state[id.replace('Text', '')] = e.target.value;
+                    render();
+                });
+            });
+
+            const range = document.getElementById('fontSizeRange');
+            range.addEventListener('input', (e) => {
+                state.fontSize = parseInt(e.target.value);
+                document.getElementById('fontSizeVal').innerText = state.fontSize + 'px';
+                render();
+            });
+
+            setupColorPicker('bgColorPicker', 'bgColor');
+            setupColorPicker('textColorPicker', 'textColor');
+            setupColorPicker('accentColorPicker', 'accentColor');
+
+            document.getElementById('downloadBtn').addEventListener('click', function() {
+                this.innerText = "生成中...";
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.download = `Insight_Custom_${Date.now()}.png`;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    link.click();
+                    this.innerText = "保存海报到相册";
+                }, 100);
+            });
+        }
+
+        function setupColorPicker(containerId, stateKey) {
+            const container = document.getElementById(containerId);
+            const dots = container.querySelectorAll('.color-dot');
+            dots.forEach(dot => {
+                dot.addEventListener('click', () => {
+                    dots.forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+                    state[stateKey] = dot.dataset.color;
+                    render();
+                });
+            });
+        }
+
+        function render() {
+            const size = 1200; 
+            const edgePadding = 80;     
+            const contentPadding = 180;  
+            const vPadding = 100;
+
+            ctx.fillStyle = state.bgColor;
+            ctx.fillRect(0, 0, size, size);
+
+            // 2. 页眉 (双色黑体)
+            ctx.textBaseline = 'middle';
+            ctx.font = `bold 36px ${sansFontStack}`;
+            const parts = state.header.split('|');
+            const leftPart = parts[0] ? parts[0].trim() + (parts.length > 1 ? " | " : "") : "";
+            const rightPart = parts[1] ? parts[1].trim() : "";
+            
+            ctx.textAlign = 'left';
+            const leftWidth = ctx.measureText(leftPart).width;
+            const rightWidth = ctx.measureText(rightPart).width;
+            const totalTextWidth = leftWidth + rightWidth;
+            const startX = (size / 2) - (totalTextWidth / 2);
+            
+            // 左半部主色
+            ctx.fillStyle = state.textColor;
+            ctx.fillText(leftPart, startX, vPadding);
+            // 右半部装饰色
+            if (rightPart) {
+                ctx.fillStyle = state.accentColor;
+                ctx.fillText(rightPart, startX + leftWidth, vPadding);
+            }
+            
+            // 线条跟随主色
+            ctx.strokeStyle = state.textColor;
+            ctx.lineWidth = 4;
+            const lineGap = 30;
+            ctx.beginPath();
+            ctx.moveTo(edgePadding, vPadding);
+            ctx.lineTo(startX - lineGap, vPadding);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(startX + totalTextWidth + lineGap, vPadding);
+            ctx.lineTo(size - edgePadding, vPadding);
+            ctx.stroke();
+
+            // 3. 主内容 (宋体)
+            ctx.fillStyle = state.textColor;
+            const fs = state.fontSize;
+            const lh = fs * 1.5;
+            ctx.font = `900 ${fs}px ${serifFontStack}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const maxWidth = size - (contentPadding * 2);
+            const paragraphs = state.main.split('\n');
+            const lines = [];
+
+            paragraphs.forEach(para => {
+                if (!para.trim()) { lines.push(""); return; }
+                const chars = para.split('');
+                let cur = '';
+                chars.forEach(c => {
+                    if (ctx.measureText(cur + c).width > maxWidth) {
+                        lines.push(cur); cur = c;
+                    } else cur += c;
+                });
+                lines.push(cur);
+            });
+
+            let curY = (size / 2) - ((lines.length * lh) / 2) + (lh / 2);
+            lines.forEach(line => {
+                if (line) ctx.fillText(line, size / 2, curY);
+                curY += lh;
+            });
+
+            // 4. 页脚 (黑体 - 装饰色)
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = state.accentColor;
+            ctx.font = `700 32px ${sansFontStack}`;
+            ctx.fillText(state.footer, size - edgePadding, size - vPadding);
+            const fw = ctx.measureText(state.footer).width;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = state.accentColor;
+            ctx.lineWidth = 3;
+            ctx.moveTo(edgePadding, size - vPadding - 18);
+            ctx.lineTo(size - edgePadding - fw - 30, size - vPadding - 18);
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>
